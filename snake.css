@@ -1,0 +1,14 @@
+body{
+    background: #0066ff;
+    color: #00ff73;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    text-align: center;
+    margin-top: 30px;
+}
+canvas{
+    background: #ebeef7;
+    border: 20px solid #00ffae;
+    border-radius: 20px;
+    box-shadow: 0 0 20px #00ffae55;
+}
+

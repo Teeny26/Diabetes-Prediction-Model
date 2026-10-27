@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        /* Base styles */
+        body {
+            background-color: #1e1e24;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            min-height: 100vh;
+            user-select: none;
+        }
+        h1 {
+            margin: 10px 0 5px;
+            letter-spacing: 2px;
+            font-size: 1.8rem;
+        }
+        .scoreboard {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 20px;
+        }
+        .scoreboard b {
+            color: #00ff88;
+        }
+        canvas {
+            border: 4px solid #333;
+            background-color: #000;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            max-width: 90vw;
+            max-height: 90vw;
+        }
+        .hint {
+            margin: 5px 0 10px;
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+
+        /* Compact On-screen Controls Layout */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 45px); /* Shrunk button columns from 70px to 45px */
+            grid-template-rows: repeat(3, 45px);    /* Shrunk button rows from 70px to 45px */
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn {
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 8px; /* Slightly rounder edges for smaller size */
+            font-size: 1.2rem;   /* Shrunk symbol font size from 1.8rem to 1.2rem */
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+            transition: background 0.1s, transform 0.1s;
+            touch-action: manipulation;
+        }
+        .btn:active {
+            background-color: #00ff88;
+            color: #000;
+            transform: scale(0.92);
+        }
+        /* Grid placements for the D-pad shape */
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 3; }
+    </style>
+</head>
+<body>
+    <h1>SNAKE GAME</h1>
+    <div class="scoreboard">
+        <span>Score: <b id="score">0</b></span>
+        <span>High Score: <b id="high">0</b></span>
+    </div>
+    
+    <canvas id="game" width="400" height="400"></canvas>
+    
+    <p class="hint">Use Keyboard Arrows or Screen Buttons</p>
+
+    <!-- On-screen Arrow Controls -->
+    <div class="controls">
+        <button class="btn" id="btn-up">▲</button>
+        <button class="btn" id="btn-left">◀</button>
+        <button class="btn" id="btn-right">▶</button>
+        <button class="btn" id="btn-down">▼</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const box = 20;
+        
+        let snake = [{x: 10, y: 10}];
+        let dir = 'RIGHT';
+        let lastDir = 'RIGHT'; 
+        let food = randomFood();
+        let score = 0;
+        let highScore = localStorage.getItem('snakehigh') || 0;
+        
+        document.getElementById('high').innerText = highScore;
+        
+        // Listeners for physical keyboard
+        document.addEventListener('keydown', handleKeyboardInput);
+
+        // Listeners for on-screen visual buttons
+        document.getElementById('btn-up').addEventListener('click', () => setDirection('UP'));
+        document.getElementById('btn-down').addEventListener('click', () => setDirection('DOWN'));
+        document.getElementById('btn-left').addEventListener('click', () => setDirection('LEFT'));
+        document.getElementById('btn-right').addEventListener('click', () => setDirection('RIGHT'));
+
+        function handleKeyboardInput(event) {
+            const key = event.key;
+            if (key === 'ArrowLeft' || key === 'Left') setDirection('LEFT');
+            else if (key === 'ArrowUp' || key === 'Up') setDirection('UP');
+            else if (key === 'ArrowRight' || key === 'Right') setDirection('RIGHT');
+            else if (key === 'ArrowDown' || key === 'Down') setDirection('DOWN');
+        }
+
+        // Centralized movement logic to filter illegal backward turns
+        function setDirection(newDir) {
+            if (newDir === 'LEFT' && lastDir !== 'RIGHT') dir = 'LEFT';
+            if (newDir === 'UP' && lastDir !== 'DOWN') dir = 'UP';
+            if (newDir === 'RIGHT' && lastDir !== 'LEFT') dir = 'RIGHT';
+            if (newDir === 'DOWN' && lastDir !== 'UP') dir = 'DOWN';
+        }
+
+        function randomFood() {
+            let newFood;
+            while (!newFood || snake.some(segment => segment.x === newFood.x && segment.y === newFood.y)) {
+                newFood = {
+                    x: Math.floor(Math.random() * 20),
+                    y: Math.floor(Math.random() * 20)
+                };
+            }
+            return newFood;
+        }
+
+        function checkCollision(head, array) {
+            for (let i = 0; i < array.length; i++) {
+                if (head.x === array[i].x && head.y === array[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function draw() {
+            lastDir = dir;
+
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Snake
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = i === 0 ? '#00ff88' : '#00aa5e'; 
+                ctx.fillRect(snake[i].x * box, snake[i].y * box, box - 2, box - 2);
+            }
+
+            // Draw Food
+            ctx.fillStyle = '#ff3366'; 
+            ctx.fillRect(food.x * box, food.y * box, box - 2, box - 2);
+
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            if (dir === 'LEFT') snakeX--;
+            if (dir === 'UP') snakeY--;
+            if (dir === 'RIGHT') snakeX++;
+            if (dir === 'DOWN') snakeY++;
+
+            let newHead = { x: snakeX, y: snakeY };
+
+            if (snakeX < 0 || snakeX >= 20 || snakeY < 0 || snakeY >= 20 || checkCollision(newHead, snake)) {
+                clearInterval(game);
+                alert(`Game Over! Score: ${score}`);
+                if (score > highScore) {
+                    localStorage.setItem('snakehigh', score);
+                }
+                location.reload();
+                return;
+            }
+
+            if (snakeX === food.x && snakeY === food.y) {
+                score++;
+                document.getElementById('score').innerText = score;
+                food = randomFood();
+            } else {
+                snake.pop();
+            }
+
+            snake.unshift(newHead);
+        }
+
+        /* 
+           Slower Movement Speed: Changed game loop interval from 100ms to 160ms. 
+           Higher number = slower frame refresh rate = slower snake movement.
+        */
+        let game = setInterval(draw, 200);
+    </script>
+</body>
+</html>
